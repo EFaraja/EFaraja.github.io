@@ -1,0 +1,970 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Water Bottle Production Line — SCADA System</title>
+  <meta name="description" content="A simulated industrial water bottle production line featuring a Python SCADA HMI, InfluxDB, Grafana, Docker, and real-time monitoring." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,400&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="waterbottle.css" />
+</head>
+<body>
+
+  <!-- ── NAV ────────────────────────────── -->
+  <nav class="nav" id="nav">
+    <div class="nav-inner">
+      <a href="index.html" class="nav-back">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M10 3L5 8l5 5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Back to Portfolio
+      </a>
+      <span class="nav-title">Water Bottle SCADA</span>
+      <a href="https://github.com/yourusername" target="_blank" rel="noopener" class="nav-gh">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M8 1C4.13 1 1 4.13 1 8c0 3.09 2.01 5.72 4.79 6.65.35.06.48-.15.48-.34v-1.19c-1.95.42-2.36-.94-2.36-.94-.32-.81-.78-1.02-.78-1.02-.64-.44.05-.43.05-.43.7.05 1.07.72 1.07.72.63 1.07 1.65.76 2.05.58.06-.45.25-.76.45-.94-1.56-.18-3.19-.78-3.19-3.46 0-.76.27-1.39.72-1.87-.07-.18-.31-.89.07-1.85 0 0 .59-.19 1.93.72A6.73 6.73 0 018 4.88c.6 0 1.2.08 1.76.24 1.34-.91 1.93-.72 1.93-.72.38.96.14 1.67.07 1.85.45.48.72 1.11.72 1.87 0 2.68-1.63 3.27-3.19 3.46.25.22.48.65.48 1.31v1.95c0 .19.13.41.48.34C12.99 11.72 15 9.09 15 6c0-3.87-3.13-7-7-7z" fill="currentColor"/></svg>
+        View on GitHub
+      </a>
+    </div>
+  </nav>
+
+  <!-- ── HERO ───────────────────────────── -->
+  <header class="hero" id="hero">
+    <canvas class="hero-canvas" id="heroCanvas"></canvas>
+    <div class="hero-overlay"></div>
+    <div class="hero-content">
+      <div class="hero-meta reveal">
+        <span class="hero-tag">University Project</span>
+        <span class="hero-tag">Industry 4.0</span>
+        <span class="hero-tag">Python · Docker · Grafana</span>
+      </div>
+      <h1 class="hero-title reveal">
+        Water Bottle<br>Production Line
+        <span class="hero-title-sub">Monitoring &amp; SCADA System</span>
+      </h1>
+      <p class="hero-desc reveal">
+        A simulated industrial production line built in Python — featuring a full SCADA HMI, real-time InfluxDB telemetry, Grafana dashboards, multi-threaded architecture, and Docker containerization. Designed to mirror real Industry 4.0 manufacturing environments.
+      </p>
+      <div class="hero-actions reveal">
+        <a href="https://github.com/yourusername" target="_blank" rel="noopener" class="btn btn-primary">
+          <svg width="15" height="15" viewBox="0 0 16 16" fill="none"><path d="M8 1C4.13 1 1 4.13 1 8c0 3.09 2.01 5.72 4.79 6.65.35.06.48-.15.48-.34v-1.19c-1.95.42-2.36-.94-2.36-.94-.32-.81-.78-1.02-.78-1.02-.64-.44.05-.43.05-.43.7.05 1.07.72 1.07.72.63 1.07 1.65.76 2.05.58.06-.45.25-.76.45-.94-1.56-.18-3.19-.78-3.19-3.46 0-.76.27-1.39.72-1.87-.07-.18-.31-.89.07-1.85 0 0 .59-.19 1.93.72A6.73 6.73 0 018 4.88c.6 0 1.2.08 1.76.24 1.34-.91 1.93-.72 1.93-.72.38.96.14 1.67.07 1.85.45.48.72 1.11.72 1.87 0 2.68-1.63 3.27-3.19 3.46.25.22.48.65.48 1.31v1.95c0 .19.13.41.48.34C12.99 11.72 15 9.09 15 6c0-3.87-3.13-7-7-7z" fill="currentColor"/></svg>
+          GitHub Repository
+        </a>
+        <a href="#overview" class="btn btn-ghost">
+          Explore Project
+          <svg width="15" height="15" viewBox="0 0 16 16" fill="none"><path d="M8 3v10M4 9l4 4 4-4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </a>
+      </div>
+    </div>
+
+    <!-- Hero visual — animated pipeline -->
+    <div class="hero-visual reveal">
+      <div class="pipeline-scene">
+        <div class="pipeline-header">
+          <div class="win-dot r"></div><div class="win-dot y"></div><div class="win-dot g"></div>
+          <span class="pipeline-label">Production Line — LIVE</span>
+          <span class="status-pill">● RUNNING</span>
+        </div>
+        <div class="pipeline-body">
+          <div class="stage-row">
+            <div class="stage-card">
+              <div class="stage-icon">🧪</div>
+              <div class="stage-name">Bottle Supply</div>
+              <div class="stage-val cyan">147 <span>units</span></div>
+            </div>
+            <div class="stage-arrow">→</div>
+            <div class="stage-card">
+              <div class="stage-icon">💧</div>
+              <div class="stage-name">Water Fill</div>
+              <div class="stage-val cyan">500 <span>mL</span></div>
+            </div>
+            <div class="stage-arrow">→</div>
+            <div class="stage-card">
+              <div class="stage-icon">🔩</div>
+              <div class="stage-name">Capping</div>
+              <div class="stage-val green">100%</div>
+            </div>
+            <div class="stage-arrow">→</div>
+            <div class="stage-card">
+              <div class="stage-icon">🏷️</div>
+              <div class="stage-name">Branding</div>
+              <div class="stage-val green">Active</div>
+            </div>
+            <div class="stage-arrow">→</div>
+            <div class="stage-card">
+              <div class="stage-icon">✅</div>
+              <div class="stage-name">QC Pass</div>
+              <div class="stage-val green">98.4%</div>
+            </div>
+            <div class="stage-arrow">→</div>
+            <div class="stage-card">
+              <div class="stage-icon">📦</div>
+              <div class="stage-name">Packaging</div>
+              <div class="stage-val cyan">24 <span>done</span></div>
+            </div>
+          </div>
+          <div class="flow-track"><div class="flow-bead"></div></div>
+          <div class="pipeline-stats">
+            <div class="pstat"><span class="pstat-n" data-target="147">0</span><span class="pstat-l">Bottles Produced</span></div>
+            <div class="pstat"><span class="pstat-n">98.4<span style="font-size:1rem">%</span></span><span class="pstat-l">Efficiency</span></div>
+            <div class="pstat"><span class="pstat-n" data-target="3">0</span><span class="pstat-l">Active Alarms</span></div>
+            <div class="pstat"><span class="pstat-n">4.7<span style="font-size:1rem">h</span></span><span class="pstat-l">Uptime</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="hero-scroll">
+      <div class="scroll-track"><div class="scroll-thumb"></div></div>
+    </div>
+  </header>
+
+  <!-- ── OVERVIEW ───────────────────────── -->
+  <section class="proj-section" id="overview">
+    <div class="container">
+      <div class="section-label reveal">Project Overview</div>
+      <div class="overview-grid">
+        <div class="overview-text reveal">
+          <h2 class="section-heading">Simulating an Industry 4.0 Production Floor</h2>
+          <p>The production line simulates the complete lifecycle of a water bottle across six manufacturing stages, from raw bottle supply through water filling, capping, branding, quality control, and final packaging.</p>
+          <p>The system continuously monitors production performance, equipment health, water tank levels, maintenance schedules, and defective products — surfacing all data through an interactive SCADA-style dashboard built entirely in Python.</p>
+        </div>
+        <div class="overview-meta reveal">
+          <div class="meta-block glass-card">
+            <div class="meta-row"><span class="meta-k">Role</span><span class="meta-v">Solo Developer</span></div>
+            <div class="meta-row"><span class="meta-k">Year</span><span class="meta-v">2024</span></div>
+            <div class="meta-row"><span class="meta-k">Context</span><span class="meta-v">University Capstone</span></div>
+            <div class="meta-row"><span class="meta-k">Duration</span><span class="meta-v">~6 weeks</span></div>
+            <div class="meta-row"><span class="meta-k">Lines of Code</span><span class="meta-v">~2,400</span></div>
+          </div>
+          <div class="tech-chips">
+            <span class="chip">Python</span><span class="chip">CustomTkinter</span><span class="chip">Matplotlib</span>
+            <span class="chip">InfluxDB 2.7</span><span class="chip">Grafana</span><span class="chip">Docker</span>
+            <span class="chip">Multithreading</span><span class="chip">Queue</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Process diagram -->
+      <div class="process-diagram reveal">
+        <div class="process-label">Manufacturing Process — 6 Stages</div>
+        <div class="process-stages">
+          <div class="proc-stage">
+            <div class="proc-num">01</div>
+            <div class="proc-icon">🧪</div>
+            <div class="proc-name">Bottle Supply</div>
+            <p class="proc-desc">Raw PET bottles fed into the line from storage</p>
+          </div>
+          <div class="proc-connector"></div>
+          <div class="proc-stage">
+            <div class="proc-num">02</div>
+            <div class="proc-icon">💧</div>
+            <div class="proc-name">Water Fill</div>
+            <p class="proc-desc">500mL purified water dispensed per bottle</p>
+          </div>
+          <div class="proc-connector"></div>
+          <div class="proc-stage">
+            <div class="proc-num">03</div>
+            <div class="proc-icon">🔩</div>
+            <div class="proc-name">Capping</div>
+            <p class="proc-desc">Automated torque-controlled cap placement</p>
+          </div>
+          <div class="proc-connector"></div>
+          <div class="proc-stage">
+            <div class="proc-num">04</div>
+            <div class="proc-icon">🏷️</div>
+            <div class="proc-name">Branding</div>
+            <p class="proc-desc">Label application with orientation detection</p>
+          </div>
+          <div class="proc-connector"></div>
+          <div class="proc-stage">
+            <div class="proc-num">05</div>
+            <div class="proc-icon">🔍</div>
+            <div class="proc-name">Quality Control</div>
+            <p class="proc-desc">Vision-simulated inspection, defect rejection</p>
+          </div>
+          <div class="proc-connector"></div>
+          <div class="proc-stage">
+            <div class="proc-num">06</div>
+            <div class="proc-icon">📦</div>
+            <div class="proc-name">Packaging</div>
+            <p class="proc-desc">Batch grouping and palletization output</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── CHALLENGE ──────────────────────── -->
+  <section class="proj-section dark-section" id="challenge">
+    <div class="container">
+      <div class="section-label reveal">The Challenge</div>
+      <div class="challenge-grid">
+        <div class="challenge-text reveal">
+          <h2 class="section-heading">Bridging software and the factory floor</h2>
+          <p>Industrial production systems require reliable, low-latency communication between machines, human operators, and monitoring platforms. The challenge was to build a software architecture that faithfully simulates real factory operations while maintaining UI responsiveness, data integrity, and real-time visibility — entirely in Python.</p>
+          <p>Running production logic on the same thread as the GUI would cause the interface to freeze. Storing metrics in a flat file wouldn't support time-series analytics. A single-process deployment would fail to mirror the multi-service nature of real industrial stacks.</p>
+        </div>
+        <div class="challenge-objectives reveal">
+          <h3 class="obj-heading">Key objectives</h3>
+          <ul class="obj-list">
+            <li>
+              <span class="obj-icon">⚡</span>
+              <div><strong>Real-time monitoring</strong> — sub-second metric updates without UI lag</div>
+            </li>
+            <li>
+              <span class="obj-icon">🔍</span>
+              <div><strong>Quality control simulation</strong> — automated defect detection per bottle</div>
+            </li>
+            <li>
+              <span class="obj-icon">🔧</span>
+              <div><strong>Maintenance tracking</strong> — CMMS with scheduled and reactive work orders</div>
+            </li>
+            <li>
+              <span class="obj-icon">💾</span>
+              <div><strong>Data persistence</strong> — time-series metrics stored in InfluxDB</div>
+            </li>
+            <li>
+              <span class="obj-icon">📊</span>
+              <div><strong>Analytics dashboards</strong> — Grafana for historical trend analysis</div>
+            </li>
+            <li>
+              <span class="obj-icon">🐳</span>
+              <div><strong>Containerized deployment</strong> — one-command startup via Docker Compose</div>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── ARCHITECTURE ───────────────────── -->
+  <section class="proj-section" id="architecture">
+    <div class="container">
+      <div class="section-label reveal">Software Architecture</div>
+      <h2 class="section-heading reveal">Four-layer industrial stack</h2>
+      <p class="section-sub reveal">The system follows a layered architecture inspired by real industrial control systems — each layer with a distinct responsibility and clean interface to the ones above and below.</p>
+
+      <div class="arch-visual reveal">
+        <div class="arch-layers">
+          <div class="arch-layer layer-app">
+            <div class="layer-tag">Application Layer</div>
+            <div class="layer-nodes">
+              <div class="layer-node">
+                <span class="lnode-icon">🖥️</span>
+                <span class="lnode-name">CustomTkinter<br>SCADA HMI</span>
+              </div>
+              <div class="layer-node">
+                <span class="lnode-icon">⚙️</span>
+                <span class="lnode-name">Production<br>Worker Thread</span>
+              </div>
+              <div class="layer-node">
+                <span class="lnode-icon">🔍</span>
+                <span class="lnode-name">Quality Control<br>Logic</span>
+              </div>
+              <div class="layer-node">
+                <span class="lnode-icon">🔧</span>
+                <span class="lnode-name">CMMS Maintenance<br>System</span>
+              </div>
+            </div>
+          </div>
+          <div class="layer-divider">
+            <svg width="100%" height="20" viewBox="0 0 800 20" preserveAspectRatio="none"><line x1="0" y1="10" x2="800" y2="10" stroke="rgba(0,212,255,0.2)" stroke-width="1" stroke-dasharray="6 4"/></svg>
+            <div class="layer-arrows">
+              <div class="l-arrow">↓ queue.Queue events</div>
+              <div class="l-arrow">↑ UI state updates</div>
+            </div>
+          </div>
+          <div class="arch-layer layer-comm">
+            <div class="layer-tag">Communication Layer</div>
+            <div class="layer-nodes">
+              <div class="layer-node">
+                <span class="lnode-icon">📨</span>
+                <span class="lnode-name">queue.Queue<br>Events</span>
+              </div>
+              <div class="layer-node">
+                <span class="lnode-icon">🔒</span>
+                <span class="lnode-name">Thread<br>Sync (Lock)</span>
+              </div>
+              <div class="layer-node">
+                <span class="lnode-icon">🌐</span>
+                <span class="lnode-name">HTTP POST<br>to InfluxDB</span>
+              </div>
+            </div>
+          </div>
+          <div class="layer-divider">
+            <svg width="100%" height="20" viewBox="0 0 800 20" preserveAspectRatio="none"><line x1="0" y1="10" x2="800" y2="10" stroke="rgba(0,212,255,0.2)" stroke-width="1" stroke-dasharray="6 4"/></svg>
+            <div class="layer-arrows">
+              <div class="l-arrow">↓ write metrics</div>
+              <div class="l-arrow">↑ query history</div>
+            </div>
+          </div>
+          <div class="arch-layer layer-data">
+            <div class="layer-tag">Data Layer</div>
+            <div class="layer-nodes">
+              <div class="layer-node">
+                <span class="lnode-icon">📉</span>
+                <span class="lnode-name">InfluxDB 2.7<br>Time-Series DB</span>
+              </div>
+              <div class="layer-node">
+                <span class="lnode-icon">📊</span>
+                <span class="lnode-name">Grafana<br>Analytics</span>
+              </div>
+            </div>
+          </div>
+          <div class="layer-divider">
+            <svg width="100%" height="20" viewBox="0 0 800 20" preserveAspectRatio="none"><line x1="0" y1="10" x2="800" y2="10" stroke="rgba(0,212,255,0.2)" stroke-width="1" stroke-dasharray="6 4"/></svg>
+            <div class="layer-arrows">
+              <div class="l-arrow">containers orchestrated by Docker Compose</div>
+            </div>
+          </div>
+          <div class="arch-layer layer-infra">
+            <div class="layer-tag">Infrastructure Layer</div>
+            <div class="layer-nodes">
+              <div class="layer-node">
+                <span class="lnode-icon">🐳</span>
+                <span class="lnode-name">Docker<br>Compose</span>
+              </div>
+              <div class="layer-node">
+                <span class="lnode-icon">📦</span>
+                <span class="lnode-name">InfluxDB<br>Container</span>
+              </div>
+              <div class="layer-node">
+                <span class="lnode-icon">📦</span>
+                <span class="lnode-name">Grafana<br>Container</span>
+              </div>
+              <div class="layer-node">
+                <span class="lnode-icon">💽</span>
+                <span class="lnode-name">Persistent<br>Volumes</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── HMI / SCADA ────────────────────── -->
+  <section class="proj-section dark-section" id="hmi">
+    <div class="container">
+      <div class="section-label reveal">SCADA Human Machine Interface</div>
+      <div class="hmi-intro reveal">
+        <h2 class="section-heading">The operator's window into the process</h2>
+        <p>The HMI was built with CustomTkinter to closely resemble modern industrial control panels. Operators can start and stop production, monitor equipment health in real time, acknowledge alarms, inspect per-stage statistics, and manage maintenance work orders — all from a single window.</p>
+      </div>
+
+      <!-- HMI Mock Screen 1 — Main dashboard -->
+      <div class="screen-showcase reveal">
+        <div class="screen-wrap glass-card">
+          <div class="screen-bar">
+            <div class="sb-dots"><span></span><span></span><span></span></div>
+            <span class="sb-title">Production Line HMI — Main Dashboard</span>
+            <span class="sb-status running">● RUNNING</span>
+          </div>
+          <div class="screen-body hmi-main">
+            <!-- Sidebar -->
+            <div class="hmi-sidebar">
+              <div class="hmi-logo">🏭 WaterLine Pro</div>
+              <nav class="hmi-nav">
+                <a class="hmi-nav-item active">📊 Dashboard</a>
+                <a class="hmi-nav-item">⚙️ Equipment</a>
+                <a class="hmi-nav-item">🔍 Quality</a>
+                <a class="hmi-nav-item">🔧 CMMS</a>
+                <a class="hmi-nav-item">⚠️ Alarms <span class="alarm-badge">3</span></a>
+                <a class="hmi-nav-item">📈 Analytics</a>
+              </nav>
+              <div class="hmi-controls">
+                <button class="hmi-btn start">▶ START</button>
+                <button class="hmi-btn stop">■ STOP</button>
+              </div>
+            </div>
+            <!-- Main panel -->
+            <div class="hmi-main-panel">
+              <!-- Stats row -->
+              <div class="hmi-stats-row">
+                <div class="hmi-kpi">
+                  <span class="kpi-val cyan" id="kpiBott">147</span>
+                  <span class="kpi-lbl">Bottles Produced</span>
+                </div>
+                <div class="hmi-kpi">
+                  <span class="kpi-val green">144</span>
+                  <span class="kpi-lbl">Good Units</span>
+                </div>
+                <div class="hmi-kpi">
+                  <span class="kpi-val red">3</span>
+                  <span class="kpi-lbl">Defects</span>
+                </div>
+                <div class="hmi-kpi">
+                  <span class="kpi-val yellow">98.4%</span>
+                  <span class="kpi-lbl">Efficiency</span>
+                </div>
+              </div>
+              <!-- Stage flow -->
+              <div class="hmi-flow">
+                <div class="hmi-stage ok"><span>🧪</span>Supply<br><small>NORMAL</small></div>
+                <div class="hmi-flow-arrow">→</div>
+                <div class="hmi-stage ok"><span>💧</span>Fill<br><small>NORMAL</small></div>
+                <div class="hmi-flow-arrow">→</div>
+                <div class="hmi-stage ok"><span>🔩</span>Cap<br><small>NORMAL</small></div>
+                <div class="hmi-flow-arrow">→</div>
+                <div class="hmi-stage warn"><span>🏷️</span>Brand<br><small>⚠ SLOW</small></div>
+                <div class="hmi-flow-arrow">→</div>
+                <div class="hmi-stage ok"><span>🔍</span>QC<br><small>NORMAL</small></div>
+                <div class="hmi-flow-arrow">→</div>
+                <div class="hmi-stage ok"><span>📦</span>Pack<br><small>NORMAL</small></div>
+              </div>
+              <!-- Tank + chart row -->
+              <div class="hmi-bottom-row">
+                <div class="tank-widget">
+                  <div class="tank-label">Water Tank</div>
+                  <div class="tank-body">
+                    <div class="tank-fill" style="height:72%"></div>
+                    <div class="tank-pct">72%</div>
+                  </div>
+                  <div class="tank-note">~1,800L remaining</div>
+                </div>
+                <div class="mini-chart">
+                  <div class="mc-label">Production Rate (last 10 cycles)</div>
+                  <svg viewBox="0 0 260 70" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:70px">
+                    <polyline points="0,60 26,50 52,45 78,55 104,35 130,28 156,32 182,18 208,22 234,12 260,16" fill="none" stroke="#00D4FF" stroke-width="2"/>
+                    <polyline points="0,60 26,50 52,45 78,55 104,35 130,28 156,32 182,18 208,22 234,12 260,16 260,70 0,70" fill="url(#mg)" opacity="0.15"/>
+                    <defs><linearGradient id="mg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#00D4FF"/><stop offset="100%" stop-color="transparent"/></linearGradient></defs>
+                  </svg>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <p class="screen-caption">Main SCADA Dashboard — production KPIs, stage status, water tank, and live chart</p>
+      </div>
+
+      <!-- HMI Features List -->
+      <div class="hmi-features reveal">
+        <div class="feat-item glass-card">
+          <div class="feat-icon">📺</div>
+          <div class="feat-text">
+            <strong>Live Production Flow</strong>
+            <p>Each manufacturing stage shown in real time — colour-coded by status (normal / warning / fault).</p>
+          </div>
+        </div>
+        <div class="feat-item glass-card">
+          <div class="feat-icon">❤️</div>
+          <div class="feat-text">
+            <strong>Equipment Health</strong>
+            <p>Motor temperature, vibration index, and health score updated every second for all machines.</p>
+          </div>
+        </div>
+        <div class="feat-item glass-card">
+          <div class="feat-icon">💧</div>
+          <div class="feat-text">
+            <strong>Water Tank Level</strong>
+            <p>Visual tank gauge with low-level alarm threshold and automatic refill trigger.</p>
+          </div>
+        </div>
+        <div class="feat-item glass-card">
+          <div class="feat-icon">⚠️</div>
+          <div class="feat-text">
+            <strong>Alarm &amp; Event Log</strong>
+            <p>Timestamped alarms with severity levels, acknowledgement workflow, and persistent history.</p>
+          </div>
+        </div>
+        <div class="feat-item glass-card">
+          <div class="feat-icon">📈</div>
+          <div class="feat-text">
+            <strong>Real-time Charts</strong>
+            <p>Matplotlib charts embedded in the UI, refreshed every cycle using animation threads.</p>
+          </div>
+        </div>
+        <div class="feat-item glass-card">
+          <div class="feat-icon">🔧</div>
+          <div class="feat-text">
+            <strong>Maintenance Panel</strong>
+            <p>CMMS work orders, service schedules, and equipment status all accessible within the HMI.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── CMMS SECTION ───────────────────── -->
+  <section class="proj-section" id="cmms">
+    <div class="container">
+      <div class="section-label reveal">CMMS — Computerised Maintenance Management</div>
+      <div class="cmms-intro reveal">
+        <h2 class="section-heading">Keeping machines healthy, proactively</h2>
+        <p>The CMMS module manages all maintenance activities for production equipment — from scheduled preventive maintenance triggered by run-hour thresholds to reactive work orders raised automatically when equipment health drops below defined limits. Every work order is tracked through a full lifecycle: open → assigned → in-progress → completed.</p>
+      </div>
+
+      <!-- CMMS Mock Screen -->
+      <div class="screen-showcase reveal">
+        <div class="screen-wrap glass-card">
+          <div class="screen-bar">
+            <div class="sb-dots"><span></span><span></span><span></span></div>
+            <span class="sb-title">CMMS — Maintenance Management System</span>
+            <span class="sb-status warn">⚠ 2 OVERDUE</span>
+          </div>
+          <div class="screen-body cmms-body">
+            <!-- Summary row -->
+            <div class="cmms-summary">
+              <div class="cmms-kpi"><span class="ckpi-v cyan">12</span><span class="ckpi-l">Total WOs</span></div>
+              <div class="cmms-kpi"><span class="ckpi-v green">7</span><span class="ckpi-l">Completed</span></div>
+              <div class="cmms-kpi"><span class="ckpi-v yellow">3</span><span class="ckpi-l">In Progress</span></div>
+              <div class="cmms-kpi"><span class="ckpi-v red">2</span><span class="ckpi-l">Overdue</span></div>
+              <div class="cmms-kpi"><span class="ckpi-v cyan">96%</span><span class="ckpi-l">Availability</span></div>
+            </div>
+            <!-- Work orders table -->
+            <div class="cmms-table-wrap">
+              <div class="cmms-thead">
+                <span>WO #</span><span>Equipment</span><span>Type</span><span>Description</span><span>Due</span><span>Status</span>
+              </div>
+              <div class="cmms-row">
+                <span class="wo-id">#WO-024</span><span>Filling Pump A</span><span class="wo-type pm">PM</span><span>Replace seals & lubricate shaft</span><span class="wo-due ok">2024-06-12</span><span class="wo-status completed">✓ Done</span>
+              </div>
+              <div class="cmms-row">
+                <span class="wo-id">#WO-025</span><span>Conveyor B Motor</span><span class="wo-type cm">CM</span><span>Investigate vibration anomaly</span><span class="wo-due warn">2024-06-14</span><span class="wo-status inprog">→ In Progress</span>
+              </div>
+              <div class="cmms-row">
+                <span class="wo-id">#WO-026</span><span>Capper Unit C</span><span class="wo-type pm">PM</span><span>Torque calibration check</span><span class="wo-due ok">2024-06-16</span><span class="wo-status open">Open</span>
+              </div>
+              <div class="cmms-row overdue-row">
+                <span class="wo-id">#WO-027</span><span>QC Camera D</span><span class="wo-type cm">CM</span><span>Lens cleaning — detection rate low</span><span class="wo-due red">2024-06-10</span><span class="wo-status overdue">⚠ Overdue</span>
+              </div>
+              <div class="cmms-row overdue-row">
+                <span class="wo-id">#WO-028</span><span>Label Applicator E</span><span class="wo-type pm">PM</span><span>Roller replacement</span><span class="wo-due red">2024-06-11</span><span class="wo-status overdue">⚠ Overdue</span>
+              </div>
+              <div class="cmms-row">
+                <span class="wo-id">#WO-029</span><span>Water Pump F</span><span class="wo-type pm">PM</span><span>Filter replacement scheduled</span><span class="wo-due ok">2024-06-18</span><span class="wo-status open">Open</span>
+              </div>
+            </div>
+            <!-- Equipment health -->
+            <div class="equip-health">
+              <div class="eh-title">Equipment Health Scores</div>
+              <div class="eh-bars">
+                <div class="eh-bar-row"><span class="eh-name">Filling Pump A</span><div class="eh-bar"><div class="eh-fill" style="--w:92%;--c:#00FF88"></div></div><span class="eh-pct green">92%</span></div>
+                <div class="eh-bar-row"><span class="eh-name">Conveyor B</span><div class="eh-bar"><div class="eh-fill" style="--w:58%;--c:#FFB84D"></div></div><span class="eh-pct yellow">58%</span></div>
+                <div class="eh-bar-row"><span class="eh-name">Capper C</span><div class="eh-bar"><div class="eh-fill" style="--w:85%;--c:#00FF88"></div></div><span class="eh-pct green">85%</span></div>
+                <div class="eh-bar-row"><span class="eh-name">QC Camera D</span><div class="eh-bar"><div class="eh-fill" style="--w:41%;--c:#FF4D6D"></div></div><span class="eh-pct red">41%</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <p class="screen-caption">CMMS module — work order management, equipment health scores, and maintenance scheduling</p>
+      </div>
+
+      <div class="cmms-features reveal">
+        <div class="cmmsf glass-card">
+          <strong>Preventive Maintenance (PM)</strong>
+          <p>Time- and run-hour-based service triggers with auto-generated work orders before failures occur.</p>
+        </div>
+        <div class="cmmsf glass-card">
+          <strong>Corrective Maintenance (CM)</strong>
+          <p>Reactive work orders raised automatically when health scores fall below thresholds.</p>
+        </div>
+        <div class="cmmsf glass-card">
+          <strong>Work Order Lifecycle</strong>
+          <p>Full state machine: Open → Assigned → In Progress → Completed → Archived with timestamps.</p>
+        </div>
+        <div class="cmmsf glass-card">
+          <strong>Equipment Registry</strong>
+          <p>Each machine registered with asset ID, install date, last service, and runtime hours.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── DATA / INFLUX / GRAFANA ────────── -->
+  <section class="proj-section dark-section" id="data">
+    <div class="container">
+      <div class="section-label reveal">Data Collection &amp; Monitoring</div>
+      <div class="data-intro reveal">
+        <h2 class="section-heading">Every metric captured, nothing lost</h2>
+        <p>Production metrics are written to InfluxDB every production cycle using the Python <code>influxdb-client</code> library. Measurements are tagged by equipment ID, production stage, and shift — making it easy to filter and aggregate data in Grafana for shift reports, equipment trending, and OEE analysis.</p>
+      </div>
+
+      <div class="data-two-col">
+        <!-- InfluxDB mock -->
+        <div class="reveal">
+          <div class="screen-wrap glass-card">
+            <div class="screen-bar">
+              <div class="sb-dots"><span></span><span></span><span></span></div>
+              <span class="sb-title">InfluxDB 2.7 — Data Explorer</span>
+              <span class="sb-badge">localhost:8086</span>
+            </div>
+            <div class="screen-body influx-body">
+              <div class="influx-query">
+                <div class="iq-label">Flux Query</div>
+                <div class="iq-code">
+                  <span class="iq-kw">from</span>(bucket: <span class="iq-str">"production"</span>)<br>
+                  &nbsp;&nbsp;|&gt; range(start: <span class="iq-val">-1h</span>)<br>
+                  &nbsp;&nbsp;|&gt; filter(fn: (r) =&gt; r._measurement == <span class="iq-str">"bottles"</span>)<br>
+                  &nbsp;&nbsp;|&gt; <span class="iq-kw">aggregateWindow</span>(every: <span class="iq-val">1m</span>, fn: mean)
+                </div>
+              </div>
+              <div class="influx-metrics">
+                <div class="im-row head"><span>Measurement</span><span>Tags</span><span>Last Value</span><span>Updated</span></div>
+                <div class="im-row"><span class="im-meas">bottles_produced</span><span class="im-tag">stage=fill</span><span class="im-val cyan">147</span><span class="im-time">0s ago</span></div>
+                <div class="im-row"><span class="im-meas">efficiency</span><span class="im-tag">line=A</span><span class="im-val green">98.4%</span><span class="im-time">0s ago</span></div>
+                <div class="im-row"><span class="im-meas">defect_rate</span><span class="im-tag">qc=auto</span><span class="im-val red">1.6%</span><span class="im-time">0s ago</span></div>
+                <div class="im-row"><span class="im-meas">tank_level</span><span class="im-tag">unit=litre</span><span class="im-val cyan">1800</span><span class="im-time">0s ago</span></div>
+                <div class="im-row"><span class="im-meas">equip_health</span><span class="im-tag">id=pump_a</span><span class="im-val green">92%</span><span class="im-time">0s ago</span></div>
+              </div>
+            </div>
+          </div>
+          <p class="screen-caption">InfluxDB 2.7 — real-time metric ingestion via Python influxdb-client</p>
+        </div>
+
+        <!-- Grafana mock -->
+        <div class="reveal">
+          <div class="screen-wrap glass-card">
+            <div class="screen-bar">
+              <div class="sb-dots"><span></span><span></span><span></span></div>
+              <span class="sb-title">Grafana — Production Analytics</span>
+              <span class="sb-badge">localhost:3000</span>
+            </div>
+            <div class="screen-body grafana-body">
+              <div class="gf-header">
+                <span class="gf-range">Last 6 hours</span>
+                <span class="gf-refresh">⟳ 5s</span>
+              </div>
+              <div class="gf-panels">
+                <div class="gf-panel wide">
+                  <div class="gfp-title">Bottles Produced / min</div>
+                  <svg viewBox="0 0 300 80" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:70px">
+                    <polyline points="0,72 30,60 60,65 90,42 120,50 150,28 180,34 210,18 240,24 270,12 300,16" fill="none" stroke="#00D4FF" stroke-width="2"/>
+                    <polyline points="0,72 30,60 60,65 90,42 120,50 150,28 180,34 210,18 240,24 270,12 300,16 300,80 0,80" fill="url(#gfg)" opacity="0.12"/>
+                    <defs><linearGradient id="gfg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#00D4FF"/><stop offset="100%" stop-color="transparent"/></linearGradient></defs>
+                  </svg>
+                </div>
+                <div class="gf-panel">
+                  <div class="gfp-title">Efficiency</div>
+                  <div class="gfp-big green">98.4%</div>
+                </div>
+                <div class="gf-panel">
+                  <div class="gfp-title">Defect Rate</div>
+                  <div class="gfp-big red">1.6%</div>
+                </div>
+                <div class="gf-panel">
+                  <div class="gfp-title">Equipment Health</div>
+                  <svg viewBox="0 0 120 70" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:60px">
+                    <polyline points="0,60 20,55 40,42 60,48 80,30 100,35 120,20" fill="none" stroke="#00FF88" stroke-width="2"/>
+                  </svg>
+                </div>
+                <div class="gf-panel">
+                  <div class="gfp-title">Tank Level</div>
+                  <div class="gfp-big cyan">72%</div>
+                </div>
+                <div class="gf-panel wide">
+                  <div class="gfp-title">Alarm Events</div>
+                  <div class="gf-alarm-list">
+                    <div class="gfa-row warn"><span class="gfa-time">14:32:11</span><span>⚠ Branding speed below threshold</span></div>
+                    <div class="gfa-row red"><span class="gfa-time">14:28:05</span><span>🔴 QC Camera D health critical</span></div>
+                    <div class="gfa-row warn"><span class="gfa-time">14:15:42</span><span>⚠ Conveyor B vibration elevated</span></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <p class="screen-caption">Grafana dashboard — multi-panel analytics fed from InfluxDB with auto-refresh</p>
+        </div>
+      </div>
+
+      <!-- Tracked metrics -->
+      <div class="metrics-grid reveal">
+        <h3 class="mg-title">Tracked measurements written to InfluxDB</h3>
+        <div class="metrics-chips">
+          <span class="mchip">bottles_produced</span>
+          <span class="mchip">good_bottles</span>
+          <span class="mchip">defective_bottles</span>
+          <span class="mchip">defect_rate</span>
+          <span class="mchip">efficiency</span>
+          <span class="mchip">equip_health_{id}</span>
+          <span class="mchip">tank_level_litres</span>
+          <span class="mchip">machine_state</span>
+          <span class="mchip">production_stage</span>
+          <span class="mchip">cycle_time_ms</span>
+          <span class="mchip">alarm_count</span>
+          <span class="mchip">wo_open_count</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── THREADING ───────────────────────── -->
+  <section class="proj-section" id="threading">
+    <div class="container">
+      <div class="section-label reveal">Multithreading &amp; Communication</div>
+      <div class="thread-intro reveal">
+        <h2 class="section-heading">UI always responsive, production never blocked</h2>
+        <p>Running production logic on the UI thread would freeze the interface. The architecture separates concerns across threads connected by a <code>queue.Queue</code> — the standard Python pattern for safe inter-thread communication without shared memory.</p>
+      </div>
+
+      <div class="thread-diagram reveal">
+        <div class="thread-col main-thread">
+          <div class="thread-header">Main UI Thread</div>
+          <div class="thread-body">
+            <div class="thread-block">CustomTkinter event loop</div>
+            <div class="thread-block">Widget rendering</div>
+            <div class="thread-block">User input handling</div>
+            <div class="thread-block">Queue polling (<code>after()</code>)</div>
+          </div>
+        </div>
+        <div class="thread-bus">
+          <div class="bus-label">queue.Queue</div>
+          <div class="bus-line">
+            <div class="bus-packet">event</div>
+            <div class="bus-packet">event</div>
+            <div class="bus-packet">event</div>
+          </div>
+          <div class="bus-arrow">→</div>
+        </div>
+        <div class="thread-col worker-thread">
+          <div class="thread-header">Production Worker</div>
+          <div class="thread-body">
+            <div class="thread-block">Stage sequencing</div>
+            <div class="thread-block">QC inspection logic</div>
+            <div class="thread-block">Alarm generation</div>
+            <div class="thread-block">InfluxDB writes</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="thread-benefits reveal">
+        <div class="tb glass-card">
+          <strong>No UI Freezes</strong>
+          <p>The production loop runs in a <code>threading.Thread</code> daemon — the interface stays smooth at all times.</p>
+        </div>
+        <div class="tb glass-card">
+          <strong>Safe State Sharing</strong>
+          <p>A <code>threading.Lock</code> protects shared production state; the queue delivers events without race conditions.</p>
+        </div>
+        <div class="tb glass-card">
+          <strong>Clean Shutdown</strong>
+          <p>A <code>threading.Event</code> signals the worker to finish its current cycle and exit gracefully on stop.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── DOCKER ─────────────────────────── -->
+  <section class="proj-section dark-section" id="docker">
+    <div class="container">
+      <div class="section-label reveal">Docker Deployment</div>
+      <div class="docker-intro reveal">
+        <h2 class="section-heading">One command to start the entire stack</h2>
+        <p>The monitoring infrastructure — InfluxDB and Grafana — is containerized via Docker Compose. Running <code>docker compose up -d</code> launches both services with pre-configured credentials, ports, persistent volumes, and an auto-provisioned Grafana data source pointing at InfluxDB.</p>
+      </div>
+
+      <div class="docker-visual reveal">
+        <div class="docker-compose-card glass-card">
+          <div class="dc-header">
+            <span class="dc-file">docker-compose.yml</span>
+          </div>
+          <div class="dc-body">
+            <div class="dc-service influx-svc">
+              <div class="dc-svc-header">
+                <span class="dc-icon">📦</span>
+                <span class="dc-svc-name">influxdb</span>
+                <span class="dc-port">:8086</span>
+                <span class="dc-pill running">running</span>
+              </div>
+              <div class="dc-detail">image: influxdb:2.7</div>
+              <div class="dc-detail">volumes: influxdb-data:/var/lib/influxdb2</div>
+              <div class="dc-detail">env: DOCKER_INFLUXDB_INIT_MODE=setup</div>
+            </div>
+            <div class="dc-svc-arrow">↔ network: production-net</div>
+            <div class="dc-service grafana-svc">
+              <div class="dc-svc-header">
+                <span class="dc-icon">📊</span>
+                <span class="dc-svc-name">grafana</span>
+                <span class="dc-port">:3000</span>
+                <span class="dc-pill running">running</span>
+              </div>
+              <div class="dc-detail">image: grafana/grafana:latest</div>
+              <div class="dc-detail">volumes: grafana-data:/var/lib/grafana</div>
+              <div class="dc-detail">provisioning: datasources/influxdb.yml</div>
+            </div>
+          </div>
+          <div class="dc-footer">
+            <span class="dc-cmd">$ docker compose up -d</span>
+            <span class="dc-result green">✓ 2 containers started in 3.1s</span>
+          </div>
+        </div>
+        <div class="docker-benefits">
+          <div class="db-item">
+            <div class="db-icon">🔄</div>
+            <strong>Reproducible</strong>
+            <p>Identical environment on any machine with Docker installed — no manual setup.</p>
+          </div>
+          <div class="db-item">
+            <div class="db-icon">💾</div>
+            <strong>Persistent data</strong>
+            <p>Named volumes retain InfluxDB metrics and Grafana dashboards across container restarts.</p>
+          </div>
+          <div class="db-item">
+            <div class="db-icon">⚡</div>
+            <strong>Auto-provisioned</strong>
+            <p>Grafana data source and initial dashboards provisioned automatically on first start.</p>
+          </div>
+          <div class="db-item">
+            <div class="db-icon">🌐</div>
+            <strong>Isolated network</strong>
+            <p>Services communicate over a dedicated bridge network — not exposed unless explicitly mapped.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── RESULTS ────────────────────────── -->
+  <section class="proj-section results-section" id="results">
+    <div class="container">
+      <div class="section-label reveal">Results</div>
+      <h2 class="section-heading reveal">What the system delivers</h2>
+
+      <div class="results-grid">
+        <div class="result-card glass-card reveal">
+          <div class="rc-num cyan" data-target="6">0</div>
+          <div class="rc-label">Manufacturing stages simulated end-to-end</div>
+        </div>
+        <div class="result-card glass-card reveal">
+          <div class="rc-num green" data-target="12">0</div>
+          <div class="rc-label">Metrics tracked and stored in InfluxDB in real time</div>
+        </div>
+        <div class="result-card glass-card reveal">
+          <div class="rc-num cyan" data-target="2">0</div>
+          <div class="rc-label">Docker containers orchestrated via Compose</div>
+        </div>
+        <div class="result-card glass-card reveal">
+          <div class="rc-num green">&lt;1<span style="font-size:1.5rem">s</span></div>
+          <div class="rc-label">UI refresh latency — HMI stays responsive under load</div>
+        </div>
+      </div>
+
+      <div class="achievements reveal">
+        <div class="ach-item">
+          <span class="ach-check">✓</span>
+          <span>Real-time production simulation with per-stage state machine</span>
+        </div>
+        <div class="ach-item">
+          <span class="ach-check">✓</span>
+          <span>Modern SCADA HMI built entirely in Python (CustomTkinter + Matplotlib)</span>
+        </div>
+        <div class="ach-item">
+          <span class="ach-check">✓</span>
+          <span>Historical data stored and queryable in InfluxDB 2.7 with Flux</span>
+        </div>
+        <div class="ach-item">
+          <span class="ach-check">✓</span>
+          <span>Multi-panel Grafana dashboards with auto-refresh and alarm panel</span>
+        </div>
+        <div class="ach-item">
+          <span class="ach-check">✓</span>
+          <span>Queue-based multi-threaded architecture with no UI freezes</span>
+        </div>
+        <div class="ach-item">
+          <span class="ach-check">✓</span>
+          <span>Full CMMS with PM / CM work orders and equipment health tracking</span>
+        </div>
+        <div class="ach-item">
+          <span class="ach-check">✓</span>
+          <span>Dockerized deployment — zero-setup on any machine with Docker</span>
+        </div>
+        <div class="ach-item">
+          <span class="ach-check">✓</span>
+          <span>Industry-inspired layered architecture mirroring real SCADA systems</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── TECH STACK ─────────────────────── -->
+  <section class="proj-section dark-section" id="tech">
+    <div class="container">
+      <div class="section-label reveal">Technologies Used</div>
+      <div class="tech-stack-grid reveal">
+        <div class="ts-card glass-card">
+          <div class="ts-icon">🐍</div>
+          <div class="ts-name">Python 3.11</div>
+          <div class="ts-role">Core language — production logic, HMI, threading, data layer</div>
+        </div>
+        <div class="ts-card glass-card">
+          <div class="ts-icon">🖼️</div>
+          <div class="ts-name">CustomTkinter</div>
+          <div class="ts-role">Modern UI framework for the SCADA HMI dashboard</div>
+        </div>
+        <div class="ts-card glass-card">
+          <div class="ts-icon">📉</div>
+          <div class="ts-name">Matplotlib</div>
+          <div class="ts-role">Embedded real-time charts inside the HMI window</div>
+        </div>
+        <div class="ts-card glass-card">
+          <div class="ts-icon">📊</div>
+          <div class="ts-name">InfluxDB 2.7</div>
+          <div class="ts-role">Time-series database storing all production telemetry</div>
+        </div>
+        <div class="ts-card glass-card">
+          <div class="ts-icon">📈</div>
+          <div class="ts-name">Grafana</div>
+          <div class="ts-role">Analytics dashboards with Flux queries on InfluxDB</div>
+        </div>
+        <div class="ts-card glass-card">
+          <div class="ts-icon">🐳</div>
+          <div class="ts-name">Docker &amp; Compose</div>
+          <div class="ts-role">Containerized deployment of the monitoring stack</div>
+        </div>
+        <div class="ts-card glass-card">
+          <div class="ts-icon">🧵</div>
+          <div class="ts-name">threading</div>
+          <div class="ts-role">Python stdlib — daemon threads, locks, events</div>
+        </div>
+        <div class="ts-card glass-card">
+          <div class="ts-icon">📨</div>
+          <div class="ts-name">queue.Queue</div>
+          <div class="ts-role">Safe inter-thread communication — no shared state</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── CONCLUSION ─────────────────────── -->
+  <section class="proj-section conclusion-section" id="conclusion">
+    <div class="container">
+      <div class="conclusion-inner reveal">
+        <div class="section-label">Conclusion</div>
+        <h2 class="section-heading">A foundation for real Industry 4.0 work</h2>
+        <p class="conclusion-body">This project demonstrates how modern software engineering techniques — multithreading, containerization, time-series analytics, and event-driven design — can be applied directly to industrial automation challenges. Every architectural decision was made to mirror patterns used in real production environments, from the separation of UI and worker threads to the use of InfluxDB for high-frequency metric ingestion.</p>
+        <p class="conclusion-body">The system serves as a practical foundation for future extensions: OPC-UA integration, machine learning–based predictive maintenance, edge computing deployment, or a web-based HMI replacing the desktop client.</p>
+        <div class="conclusion-actions">
+          <a href="https://github.com/yourusername" target="_blank" rel="noopener" class="btn btn-primary">
+            <svg width="15" height="15" viewBox="0 0 16 16" fill="none"><path d="M8 1C4.13 1 1 4.13 1 8c0 3.09 2.01 5.72 4.79 6.65.35.06.48-.15.48-.34v-1.19c-1.95.42-2.36-.94-2.36-.94-.32-.81-.78-1.02-.78-1.02-.64-.44.05-.43.05-.43.7.05 1.07.72 1.07.72.63 1.07 1.65.76 2.05.58.06-.45.25-.76.45-.94-1.56-.18-3.19-.78-3.19-3.46 0-.76.27-1.39.72-1.87-.07-.18-.31-.89.07-1.85 0 0 .59-.19 1.93.72A6.73 6.73 0 018 4.88c.6 0 1.2.08 1.76.24 1.34-.91 1.93-.72 1.93-.72.38.96.14 1.67.07 1.85.45.48.72 1.11.72 1.87 0 2.68-1.63 3.27-3.19 3.46.25.22.48.65.48 1.31v1.95c0 .19.13.41.48.34C12.99 11.72 15 9.09 15 6c0-3.87-3.13-7-7-7z" fill="currentColor"/></svg>
+            View Source Code
+          </a>
+          <a href="index.html" class="btn btn-ghost">← Back to Portfolio</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── FOOTER ─────────────────────────── -->
+  <footer class="footer">
+    <div class="container">
+      <div class="footer-inner">
+        <a href="index.html" class="nav-logo">
+          <span class="logo-bracket">&lt;</span>YourName<span class="logo-bracket">/&gt;</span>
+        </a>
+        <nav class="footer-nav">
+          <a href="#overview">Overview</a>
+          <a href="#architecture">Architecture</a>
+          <a href="#hmi">HMI</a>
+          <a href="#cmms">CMMS</a>
+          <a href="#data">Data</a>
+          <a href="#docker">Docker</a>
+          <a href="#results">Results</a>
+        </nav>
+        <p class="footer-copy">© <span id="year"></span> Your Name · Water Bottle Production Line SCADA</p>
+      </div>
+    </div>
+  </footer>
+
+  <script src="waterbottle.js"></script>
+</body>
+</html>
