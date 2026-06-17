@@ -343,6 +343,226 @@
     </div>
   </section>
 
+  <!-- ── SYSTEM FLOW ──────────────────────── -->
+  <section class="proj-section dark-section" id="system-flow">
+    <div class="container">
+      <div class="section-label reveal">System Flow</div>
+      <h2 class="section-heading reveal">From a button press to a Grafana chart</h2>
+      <p class="section-sub reveal">Every component has a single job. Here's how they connect — from the entry point down to the database and back.</p>
+
+      <!-- File / Module Tree -->
+      <div class="sf-tree-wrap reveal">
+        <div class="sf-tree-header">
+          <div class="win-dot r"></div><div class="win-dot y"></div><div class="win-dot g"></div>
+          <span class="sf-tree-title">Module Structure</span>
+        </div>
+        <pre class="sf-tree-body"><span class="tree-file">launcher.py</span>          <span class="tree-comment">← entry point, starts everything</span>
+<span class="tree-branch">│</span>
+<span class="tree-branch">├──</span> <span class="tree-file">hmi.py</span>           <span class="tree-comment">← HMI window (operator controls production)</span>
+<span class="tree-branch">│   ├──</span> <span class="tree-file">production_line.py</span>   <span class="tree-comment">← the machine logic</span>
+<span class="tree-branch">│   │   ├──</span> <span class="tree-file">bottle.py</span>        <span class="tree-comment">← a single bottle object</span>
+<span class="tree-branch">│   │   ├──</span> <span class="tree-file">quality_control.py</span> <span class="tree-comment">← inspects each bottle</span>
+<span class="tree-branch">│   │   ├──</span> <span class="tree-file">cmms.py</span>          <span class="tree-comment">← tracks health, faults, work orders</span>
+<span class="tree-branch">│   │   └──</span> <span class="tree-file">database/influx_client.py</span> <span class="tree-comment">← writes to InfluxDB</span>
+<span class="tree-branch">│</span>
+<span class="tree-branch">└──</span> <span class="tree-file">cmms_dashboard.py</span>  <span class="tree-comment">← CMMS window (reads from InfluxDB)</span>
+<span class="tree-branch">    └──</span> <span class="tree-file">database/influx_client.py</span>  <span class="tree-comment">← reads from InfluxDB</span></pre>
+      </div>
+
+      <!-- Steps -->
+      <div class="sf-steps reveal">
+
+        <div class="sf-step glass-card">
+          <div class="sf-step-num">01</div>
+          <div class="sf-step-body">
+            <h3 class="sf-step-title">You run <code>launcher.py</code></h3>
+            <p>It opens two separate windows using <code>subprocess</code>:</p>
+            <ul class="sf-list">
+              <li><strong>Window 1:</strong> <code>hmi.py</code> — the operator panel</li>
+              <li><strong>Window 2:</strong> <code>cmms_dashboard.py</code> — the monitoring dashboard</li>
+            </ul>
+            <p class="sf-note">They are two separate Python processes. InfluxDB is the bridge between them.</p>
+          </div>
+        </div>
+
+        <div class="sf-step glass-card">
+          <div class="sf-step-num">02</div>
+          <div class="sf-step-body">
+            <h3 class="sf-step-title">The HMI (<code>hmi.py</code>) controls everything</h3>
+            <p>When you press <strong>START</strong>, this happens every second:</p>
+            <div class="sf-code-block">
+              <span class="sc-comment">START button pressed</span>
+              <span class="sc-arrow">→</span> <span class="sc-fn">line.start()</span>          <span class="sc-comment">sets machine_state = "RUNNING"</span>
+              <span class="sc-arrow">→</span> <span class="sc-fn">auto_produce()</span> <span class="sc-text">loop begins</span>
+                  <span class="sc-arrow">→</span> <span class="sc-fn">line.process_bottle()</span> <span class="sc-text">called every second</span>
+            </div>
+            <p><code>process_bottle()</code> moves each bottle through 5 stages one step at a time:</p>
+            <div class="sf-stage-table">
+              <div class="sst-row sst-head">
+                <span>Stage</span>
+                <span>What happens</span>
+              </div>
+              <div class="sst-row">
+                <span class="sst-stage">Bottle Supply</span>
+                <span><code>bottle.has_bottle = True</code></span>
+              </div>
+              <div class="sst-row">
+                <span class="sst-stage">Water Filling</span>
+                <span>95% chance <code>bottle.filled = True</code></span>
+              </div>
+              <div class="sst-row">
+                <span class="sst-stage">Capping</span>
+                <span>97% chance <code>bottle.capped = True</code></span>
+              </div>
+              <div class="sst-row">
+                <span class="sst-stage">Branding</span>
+                <span>96% chance <code>bottle.branded = True</code></span>
+              </div>
+              <div class="sst-row">
+                <span class="sst-stage">Quality Control</span>
+                <span><code>QualityControl.inspect(bottle)</code> — checks all 4 flags</span>
+              </div>
+            </div>
+            <p class="sf-note">At Quality Control, if any flag is <code>False</code>, the bottle is marked defective with a reason like "Missing Cap".</p>
+          </div>
+        </div>
+
+        <div class="sf-step glass-card">
+          <div class="sf-step-num">03</div>
+          <div class="sf-step-body">
+            <h3 class="sf-step-title">What happens after QC</h3>
+            <div class="sf-outcome-grid">
+              <div class="sf-outcome pass">
+                <div class="sf-outcome-label">✓ Bottle passes</div>
+                <ul class="sf-list">
+                  <li><code>good_bottles += 1</code></li>
+                  <li>Data is pushed to InfluxDB</li>
+                </ul>
+              </div>
+              <div class="sf-outcome fail">
+                <div class="sf-outcome-label">✗ Bottle fails</div>
+                <ul class="sf-list">
+                  <li><code>defective_bottles += 1</code></li>
+                  <li><code>cmms.record_defect()</code> — equipment health drops by 1 point</li>
+                  <li>If 5+ defectives: <code>cmms.report_fault()</code> — creates a work order, logs the fault, stops the machine</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="sf-step glass-card">
+          <div class="sf-step-num">04</div>
+          <div class="sf-step-body">
+            <h3 class="sf-step-title">Every bottle pushes two data packets to InfluxDB</h3>
+            <div class="sf-measurements">
+              <div class="sf-meas">
+                <div class="sf-meas-name"># Measurement 1: <span class="sf-meas-key">production_line</span></div>
+                <div class="sf-meas-fields">bottles_produced, good_bottles, defective_bottles, efficiency_pct, <span class="sf-tag">machine_state (tag)</span></div>
+              </div>
+              <div class="sf-meas">
+                <div class="sf-meas-name"># Measurement 2: <span class="sf-meas-key">cmms_health</span></div>
+                <div class="sf-meas-fields">equipment_health, maintenance_status, work_orders_open, total_maintenance_actions</div>
+              </div>
+              <div class="sf-meas sf-meas-fault">
+                <div class="sf-meas-name"># Measurement 3: <span class="sf-meas-key">cmms_events</span> <span class="sf-meas-when">(on fault / maintenance)</span></div>
+                <div class="sf-meas-fields"><span class="sf-tag">event_type (tag: "fault" or "maintenance")</span>, message</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="sf-step glass-card">
+          <div class="sf-step-num">05</div>
+          <div class="sf-step-body">
+            <h3 class="sf-step-title">The CMMS Dashboard reads from InfluxDB every 2 seconds</h3>
+            <p><code>update_ui()</code> runs on a 2-second timer. It calls <code>InfluxReader</code> which queries InfluxDB:</p>
+            <div class="sf-decision">
+              <div class="sf-decision-node">InfluxDB online?</div>
+              <div class="sf-decision-branches">
+                <div class="sf-branch yes">
+                  <div class="sf-branch-label green">YES</div>
+                  <ul class="sf-list">
+                    <li>Read <code>production_line</code> + <code>cmms_health</code> + <code>cmms_events</code></li>
+                    <li>Show <span class="sf-badge-live">● LIVE · InfluxDB</span> in green</li>
+                    <li>KPIs reflect HMI's real data</li>
+                    <li>Status pill shows HMI's <code>machine_state</code></li>
+                  </ul>
+                </div>
+                <div class="sf-branch no">
+                  <div class="sf-branch-label yellow">NO</div>
+                  <ul class="sf-list">
+                    <li>Fall back to its own offline simulator</li>
+                    <li>Show <span class="sf-badge-sim">SIMULATOR (InfluxDB offline)</span> in amber</li>
+                    <li>Each app runs independently</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+            <p class="sf-note">The CMMS also pushes station metrics (simulated wear per station) back to InfluxDB so Grafana can visualise them.</p>
+          </div>
+        </div>
+
+        <div class="sf-step glass-card">
+          <div class="sf-step-num">06</div>
+          <div class="sf-step-body">
+            <h3 class="sf-step-title">The CMMS (<code>cmms.py</code>) tracks machine health</h3>
+            <p>The CMMS class is owned by <code>ProductionLine</code> inside the HMI process. It tracks:</p>
+            <div class="sf-attr-table">
+              <div class="sat-row sat-head"><span>Attribute</span><span>What it means</span></div>
+              <div class="sat-row"><span class="sat-attr">equipment_health</span><span>Starts at 100, drops by 1 per defect</span></div>
+              <div class="sat-row"><span class="sat-attr">maintenance_status</span><span>NORMAL → WARNING → DUE</span></div>
+              <div class="sat-row"><span class="sat-attr">work_orders</span><span>List of fault tickets with OPEN / CLOSED status</span></div>
+              <div class="sat-row"><span class="sat-attr">fault_history</span><span>Every fault ever recorded</span></div>
+              <div class="sat-row"><span class="sat-attr">maintenance_history</span><span>Every maintenance action performed</span></div>
+            </div>
+            <p class="sf-note">When you press <strong>MAINT.</strong> in the HMI: <code>perform_maintenance()</code> resets health to 100, clears faults, schedules next maintenance in 30 days, and logs a maintenance event to InfluxDB.</p>
+          </div>
+        </div>
+
+        <div class="sf-step glass-card">
+          <div class="sf-step-num">07</div>
+          <div class="sf-step-body">
+            <h3 class="sf-step-title">Grafana connects directly to InfluxDB</h3>
+            <p>Grafana reads the same measurements the HMI writes. Point Grafana at <code>localhost:8086</code>, org <code>SRH</code>, bucket <code>production</code>, and query any of:</p>
+            <div class="sf-grafana-metrics">
+              <div class="sf-gm-item"><span class="sf-gm-key">production_line</span><span class="sf-gm-desc">live bottle counts and efficiency</span></div>
+              <div class="sf-gm-item"><span class="sf-gm-key">cmms_health</span><span class="sf-gm-desc">equipment health trend over time</span></div>
+              <div class="sf-gm-item"><span class="sf-gm-key">cmms_events</span><span class="sf-gm-desc">fault and maintenance event timeline</span></div>
+              <div class="sf-gm-item"><span class="sf-gm-key">station_metrics</span><span class="sf-gm-desc">per-station wear and defect rates (written by CMMS dashboard)</span></div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Summary Flow -->
+      <div class="sf-summary reveal">
+        <h3 class="sf-summary-title">Summary Flow</h3>
+        <div class="sf-flow-chain">
+          <div class="sf-flow-node">Operator presses<br><strong>START</strong> in HMI</div>
+          <div class="sf-flow-arrow">↓</div>
+          <div class="sf-flow-node">Bottle travels through<br><strong>5 stages</strong></div>
+          <div class="sf-flow-arrow">↓</div>
+          <div class="sf-flow-node">QC <strong>passes</strong> or<br><strong>fails</strong> the bottle</div>
+          <div class="sf-flow-arrow">↓</div>
+          <div class="sf-flow-node sf-flow-node--accent">HMI writes to<br><strong>InfluxDB</strong> every bottle</div>
+          <div class="sf-flow-arrow sf-fork-arrow">↙ &nbsp; &nbsp; &nbsp; &nbsp; ↘</div>
+          <div class="sf-flow-fork">
+            <div class="sf-flow-node">CMMS Dashboard<br>reads InfluxDB<br><strong>every 2 s</strong></div>
+            <div class="sf-flow-node">Grafana reads<br>InfluxDB<br><strong>continuously</strong></div>
+          </div>
+          <div class="sf-flow-arrow sf-fork-arrow">↓ &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; ↓</div>
+          <div class="sf-flow-fork">
+            <div class="sf-flow-node sf-flow-node--dim">CMMS shows live<br>health, faults, KPIs</div>
+            <div class="sf-flow-node sf-flow-node--dim">Grafana shows<br>charts &amp; trends</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
   <!-- ── HMI / SCADA ────────────────────── -->
   <section class="proj-section dark-section" id="hmi">
     <div class="container">
@@ -353,88 +573,34 @@
       </div>
 
       <!-- HMI Mock Screen 1 — Main dashboard -->
-      <div class="screen-showcase reveal">
-        <div class="screen-wrap glass-card">
-          <div class="screen-bar">
-            <div class="sb-dots"><span></span><span></span><span></span></div>
-            <span class="sb-title">Production Line HMI — Main Dashboard</span>
-            <span class="sb-status running">● RUNNING</span>
-          </div>
-          <div class="screen-body hmi-main">
-            <!-- Sidebar -->
-            <div class="hmi-sidebar">
-              <div class="hmi-logo">🏭 WaterLine Pro</div>
-              <nav class="hmi-nav">
-                <a class="hmi-nav-item active">📊 Dashboard</a>
-                <a class="hmi-nav-item">⚙️ Equipment</a>
-                <a class="hmi-nav-item">🔍 Quality</a>
-                <a class="hmi-nav-item">🔧 CMMS</a>
-                <a class="hmi-nav-item">⚠️ Alarms <span class="alarm-badge">3</span></a>
-                <a class="hmi-nav-item">📈 Analytics</a>
-              </nav>
-              <div class="hmi-controls">
-                <button class="hmi-btn start">▶ START</button>
-                <button class="hmi-btn stop">■ STOP</button>
-              </div>
-            </div>
-            <!-- Main panel -->
-            <div class="hmi-main-panel">
-              <!-- Stats row -->
-              <div class="hmi-stats-row">
-                <div class="hmi-kpi">
-                  <span class="kpi-val cyan" id="kpiBott">147</span>
-                  <span class="kpi-lbl">Bottles Produced</span>
-                </div>
-                <div class="hmi-kpi">
-                  <span class="kpi-val green">144</span>
-                  <span class="kpi-lbl">Good Units</span>
-                </div>
-                <div class="hmi-kpi">
-                  <span class="kpi-val red">3</span>
-                  <span class="kpi-lbl">Defects</span>
-                </div>
-                <div class="hmi-kpi">
-                  <span class="kpi-val yellow">98.4%</span>
-                  <span class="kpi-lbl">Efficiency</span>
-                </div>
-              </div>
-              <!-- Stage flow -->
-              <div class="hmi-flow">
-                <div class="hmi-stage ok"><span>🧪</span>Supply<br><small>NORMAL</small></div>
-                <div class="hmi-flow-arrow">→</div>
-                <div class="hmi-stage ok"><span>💧</span>Fill<br><small>NORMAL</small></div>
-                <div class="hmi-flow-arrow">→</div>
-                <div class="hmi-stage ok"><span>🔩</span>Cap<br><small>NORMAL</small></div>
-                <div class="hmi-flow-arrow">→</div>
-                <div class="hmi-stage warn"><span>🏷️</span>Brand<br><small>⚠ SLOW</small></div>
-                <div class="hmi-flow-arrow">→</div>
-                <div class="hmi-stage ok"><span>🔍</span>QC<br><small>NORMAL</small></div>
-                <div class="hmi-flow-arrow">→</div>
-                <div class="hmi-stage ok"><span>📦</span>Pack<br><small>NORMAL</small></div>
-              </div>
-              <!-- Tank + chart row -->
-              <div class="hmi-bottom-row">
-                <div class="tank-widget">
-                  <div class="tank-label">Water Tank</div>
-                  <div class="tank-body">
-                    <div class="tank-fill" style="height:72%"></div>
-                    <div class="tank-pct">72%</div>
-                  </div>
-                  <div class="tank-note">~1,800L remaining</div>
-                </div>
-                <div class="mini-chart">
-                  <div class="mc-label">Production Rate (last 10 cycles)</div>
-                  <svg viewBox="0 0 260 70" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:70px">
-                    <polyline points="0,60 26,50 52,45 78,55 104,35 130,28 156,32 182,18 208,22 234,12 260,16" fill="none" stroke="#00D4FF" stroke-width="2"/>
-                    <polyline points="0,60 26,50 52,45 78,55 104,35 130,28 156,32 182,18 208,22 234,12 260,16 260,70 0,70" fill="url(#mg)" opacity="0.15"/>
-                    <defs><linearGradient id="mg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#00D4FF"/><stop offset="100%" stop-color="transparent"/></linearGradient></defs>
-                  </svg>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-        <p class="screen-caption">Main SCADA Dashboard — production KPIs, stage status, water tank, and live chart</p>
+      <!-- HMI Screenshot -->
+    <div class="screen-showcase reveal">
+     <div class="screen-wrap glass-card">
+      <div class="screen-bar">
+       <div class="sb-dots"><span></span><span></span><span></span></div>
+       <span class="sb-title">Production Line HMI — Main Dashboard</span>
+       <span class="sb-status running">● RUNNING</span>
+      </div>
+      <div class="screenshot-container">
+       <img
+        src="images/HMI.png"
+        alt="Water Bottle Production Line HMI Dashboard"
+        class="project-screenshot"
+        loading="lazy"
+        />
+       <div class="screenshot-placeholder" id="hmi-placeholder">
+        <div class="ph-icon">🖥️</div>
+        <p class="ph-title">HMI Dashboard Screenshot</p>
+        <p class="ph-sub">Add your file at: <code>screenshots/hmi-main.png</code></p>
+       </div>
+      </div>
+    </div>
+  <p class="screen-caption">Main SCADA Dashboard — production KPIs, stage status, water tank, and live chart</p>
+</div>
+
+<!-- HMI Screenshot 2 (optional second view e.g. alarms or equipment tab) -->
+
+
       </div>
 
       <!-- HMI Features List -->
@@ -495,58 +661,53 @@
       </div>
 
       <!-- CMMS Mock Screen -->
-      <div class="screen-showcase reveal">
-        <div class="screen-wrap glass-card">
-          <div class="screen-bar">
-            <div class="sb-dots"><span></span><span></span><span></span></div>
-            <span class="sb-title">CMMS — Maintenance Management System</span>
-            <span class="sb-status warn">⚠ 2 OVERDUE</span>
-          </div>
-          <div class="screen-body cmms-body">
-            <!-- Summary row -->
-            <div class="cmms-summary">
-              <div class="cmms-kpi"><span class="ckpi-v cyan">12</span><span class="ckpi-l">Total WOs</span></div>
-              <div class="cmms-kpi"><span class="ckpi-v green">7</span><span class="ckpi-l">Completed</span></div>
-              <div class="cmms-kpi"><span class="ckpi-v yellow">3</span><span class="ckpi-l">In Progress</span></div>
-              <div class="cmms-kpi"><span class="ckpi-v red">2</span><span class="ckpi-l">Overdue</span></div>
-              <div class="cmms-kpi"><span class="ckpi-v cyan">96%</span><span class="ckpi-l">Availability</span></div>
-            </div>
-            <!-- Work orders table -->
-            <div class="cmms-table-wrap">
-              <div class="cmms-thead">
-                <span>WO #</span><span>Equipment</span><span>Type</span><span>Description</span><span>Due</span><span>Status</span>
-              </div>
-              <div class="cmms-row">
-                <span class="wo-id">#WO-024</span><span>Filling Pump A</span><span class="wo-type pm">PM</span><span>Replace seals & lubricate shaft</span><span class="wo-due ok">2024-06-12</span><span class="wo-status completed">✓ Done</span>
-              </div>
-              <div class="cmms-row">
-                <span class="wo-id">#WO-025</span><span>Conveyor B Motor</span><span class="wo-type cm">CM</span><span>Investigate vibration anomaly</span><span class="wo-due warn">2024-06-14</span><span class="wo-status inprog">→ In Progress</span>
-              </div>
-              <div class="cmms-row">
-                <span class="wo-id">#WO-026</span><span>Capper Unit C</span><span class="wo-type pm">PM</span><span>Torque calibration check</span><span class="wo-due ok">2024-06-16</span><span class="wo-status open">Open</span>
-              </div>
-              <div class="cmms-row overdue-row">
-                <span class="wo-id">#WO-027</span><span>QC Camera D</span><span class="wo-type cm">CM</span><span>Lens cleaning — detection rate low</span><span class="wo-due red">2024-06-10</span><span class="wo-status overdue">⚠ Overdue</span>
-              </div>
-              <div class="cmms-row overdue-row">
-                <span class="wo-id">#WO-028</span><span>Label Applicator E</span><span class="wo-type pm">PM</span><span>Roller replacement</span><span class="wo-due red">2024-06-11</span><span class="wo-status overdue">⚠ Overdue</span>
-              </div>
-              <div class="cmms-row">
-                <span class="wo-id">#WO-029</span><span>Water Pump F</span><span class="wo-type pm">PM</span><span>Filter replacement scheduled</span><span class="wo-due ok">2024-06-18</span><span class="wo-status open">Open</span>
-              </div>
-            </div>
-            <!-- Equipment health -->
-            <div class="equip-health">
-              <div class="eh-title">Equipment Health Scores</div>
-              <div class="eh-bars">
-                <div class="eh-bar-row"><span class="eh-name">Filling Pump A</span><div class="eh-bar"><div class="eh-fill" style="--w:92%;--c:#00FF88"></div></div><span class="eh-pct green">92%</span></div>
-                <div class="eh-bar-row"><span class="eh-name">Conveyor B</span><div class="eh-bar"><div class="eh-fill" style="--w:58%;--c:#FFB84D"></div></div><span class="eh-pct yellow">58%</span></div>
-                <div class="eh-bar-row"><span class="eh-name">Capper C</span><div class="eh-bar"><div class="eh-fill" style="--w:85%;--c:#00FF88"></div></div><span class="eh-pct green">85%</span></div>
-                <div class="eh-bar-row"><span class="eh-name">QC Camera D</span><div class="eh-bar"><div class="eh-fill" style="--w:41%;--c:#FF4D6D"></div></div><span class="eh-pct red">41%</span></div>
-              </div>
-            </div>
-          </div>
-        </div>
+      <!-- CMMS Screenshot -->
+<div class="screen-showcase reveal">
+  <div class="screen-wrap glass-card">
+    <div class="screen-bar">
+      <div class="sb-dots"><span></span><span></span><span></span></div>
+      <span class="sb-title">CMMS — Maintenance Management System</span>
+      <span class="sb-status warn">⚠ 2 OVERDUE</span>
+    </div>
+    <div class="screenshot-container">
+      <img
+        src= "images/CMMS.png"
+        alt="CMMS Maintenance Management System"
+        class="project-screenshot"
+        loading="lazy"
+      />
+      <div class="screenshot-placeholder" id="cmms-placeholder">
+        <div class="ph-icon">🔧</div>
+        <p class="ph-title">CMMS Screenshot</p>
+      </div>
+    </div>
+  </div>
+  <p class="screen-caption">CMMS module — work order management, equipment health scores, and maintenance scheduling</p>
+</div>
+
+<!-- CMMS Screenshot 2 (optional — work order detail or equipment health view) -->
+<div class="screen-showcase reveal" style="margin-top: 28px;">
+  <div class="screen-wrap glass-card">
+    <div class="screen-bar">
+      <div class="sb-dots"><span></span><span></span><span></span></div>
+      <span class="sb-title">CMMS — Equipment Health & Work Order Detail</span>
+      <span class="sb-status running">● ACTIVE</span>
+    </div>
+    <div class="screenshot-container">
+      <img
+        src="images/WBWO.png"
+        alt="CMMS Work Order Detail"
+        class="project-screenshot"
+        loading="lazy"
+      />
+      <div class="screenshot-placeholder" id="cmms-detail-placeholder">
+        <div class="ph-icon">📋</div>
+        <p class="ph-title">CMMS Work Order Detail Screenshot</p>
+      </div>
+    </div>
+  </div>
+  <p class="screen-caption">Work order detail view — assigned technician, parts used, completion notes</p>
+</div>
         <p class="screen-caption">CMMS module — work order management, equipment health scores, and maintenance scheduling</p>
       </div>
 
@@ -581,91 +742,56 @@
       </div>
 
       <div class="data-two-col">
-        <!-- InfluxDB mock -->
-        <div class="reveal">
-          <div class="screen-wrap glass-card">
-            <div class="screen-bar">
-              <div class="sb-dots"><span></span><span></span><span></span></div>
-              <span class="sb-title">InfluxDB 2.7 — Data Explorer</span>
-              <span class="sb-badge">localhost:8086</span>
-            </div>
-            <div class="screen-body influx-body">
-              <div class="influx-query">
-                <div class="iq-label">Flux Query</div>
-                <div class="iq-code">
-                  <span class="iq-kw">from</span>(bucket: <span class="iq-str">"production"</span>)<br>
-                  &nbsp;&nbsp;|&gt; range(start: <span class="iq-val">-1h</span>)<br>
-                  &nbsp;&nbsp;|&gt; filter(fn: (r) =&gt; r._measurement == <span class="iq-str">"bottles"</span>)<br>
-                  &nbsp;&nbsp;|&gt; <span class="iq-kw">aggregateWindow</span>(every: <span class="iq-val">1m</span>, fn: mean)
-                </div>
-              </div>
-              <div class="influx-metrics">
-                <div class="im-row head"><span>Measurement</span><span>Tags</span><span>Last Value</span><span>Updated</span></div>
-                <div class="im-row"><span class="im-meas">bottles_produced</span><span class="im-tag">stage=fill</span><span class="im-val cyan">147</span><span class="im-time">0s ago</span></div>
-                <div class="im-row"><span class="im-meas">efficiency</span><span class="im-tag">line=A</span><span class="im-val green">98.4%</span><span class="im-time">0s ago</span></div>
-                <div class="im-row"><span class="im-meas">defect_rate</span><span class="im-tag">qc=auto</span><span class="im-val red">1.6%</span><span class="im-time">0s ago</span></div>
-                <div class="im-row"><span class="im-meas">tank_level</span><span class="im-tag">unit=litre</span><span class="im-val cyan">1800</span><span class="im-time">0s ago</span></div>
-                <div class="im-row"><span class="im-meas">equip_health</span><span class="im-tag">id=pump_a</span><span class="im-val green">92%</span><span class="im-time">0s ago</span></div>
-              </div>
-            </div>
-          </div>
-          <p class="screen-caption">InfluxDB 2.7 — real-time metric ingestion via Python influxdb-client</p>
-        </div>
 
-        <!-- Grafana mock -->
-        <div class="reveal">
-          <div class="screen-wrap glass-card">
-            <div class="screen-bar">
-              <div class="sb-dots"><span></span><span></span><span></span></div>
-              <span class="sb-title">Grafana — Production Analytics</span>
-              <span class="sb-badge">localhost:3000</span>
-            </div>
-            <div class="screen-body grafana-body">
-              <div class="gf-header">
-                <span class="gf-range">Last 6 hours</span>
-                <span class="gf-refresh">⟳ 5s</span>
-              </div>
-              <div class="gf-panels">
-                <div class="gf-panel wide">
-                  <div class="gfp-title">Bottles Produced / min</div>
-                  <svg viewBox="0 0 300 80" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:70px">
-                    <polyline points="0,72 30,60 60,65 90,42 120,50 150,28 180,34 210,18 240,24 270,12 300,16" fill="none" stroke="#00D4FF" stroke-width="2"/>
-                    <polyline points="0,72 30,60 60,65 90,42 120,50 150,28 180,34 210,18 240,24 270,12 300,16 300,80 0,80" fill="url(#gfg)" opacity="0.12"/>
-                    <defs><linearGradient id="gfg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#00D4FF"/><stop offset="100%" stop-color="transparent"/></linearGradient></defs>
-                  </svg>
-                </div>
-                <div class="gf-panel">
-                  <div class="gfp-title">Efficiency</div>
-                  <div class="gfp-big green">98.4%</div>
-                </div>
-                <div class="gf-panel">
-                  <div class="gfp-title">Defect Rate</div>
-                  <div class="gfp-big red">1.6%</div>
-                </div>
-                <div class="gf-panel">
-                  <div class="gfp-title">Equipment Health</div>
-                  <svg viewBox="0 0 120 70" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:60px">
-                    <polyline points="0,60 20,55 40,42 60,48 80,30 100,35 120,20" fill="none" stroke="#00FF88" stroke-width="2"/>
-                  </svg>
-                </div>
-                <div class="gf-panel">
-                  <div class="gfp-title">Tank Level</div>
-                  <div class="gfp-big cyan">72%</div>
-                </div>
-                <div class="gf-panel wide">
-                  <div class="gfp-title">Alarm Events</div>
-                  <div class="gf-alarm-list">
-                    <div class="gfa-row warn"><span class="gfa-time">14:32:11</span><span>⚠ Branding speed below threshold</span></div>
-                    <div class="gfa-row red"><span class="gfa-time">14:28:05</span><span>🔴 QC Camera D health critical</span></div>
-                    <div class="gfa-row warn"><span class="gfa-time">14:15:42</span><span>⚠ Conveyor B vibration elevated</span></div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-          <p class="screen-caption">Grafana dashboard — multi-panel analytics fed from InfluxDB with auto-refresh</p>
+  <!-- InfluxDB Screenshot -->
+  <div class="reveal">
+    <div class="screen-wrap glass-card">
+      <div class="screen-bar">
+        <div class="sb-dots"><span></span><span></span><span></span></div>
+        <span class="sb-title">InfluxDB 2.7 — Data Explorer</span>
+        <span class="sb-badge">localhost:8086</span>
+      </div>
+      <div class="screenshot-container">
+        <img
+          src="images/WBINFL.png"
+          alt="InfluxDB Data Explorer"
+          class="project-screenshot"
+          loading="lazy"
+        />
+        <div class="screenshot-placeholder" id="influx-placeholder">
+          <div class="ph-icon">📉</div>
+          <p class="ph-title">InfluxDB Screenshot</p>
         </div>
       </div>
+    </div>
+    <p class="screen-caption">InfluxDB 2.7 — real-time metric ingestion via Python influxdb-client</p>
+  </div>
+
+  <!-- Grafana Screenshot -->
+  <div class="reveal">
+    <div class="screen-wrap glass-card">
+      <div class="screen-bar">
+        <div class="sb-dots"><span></span><span></span><span></span></div>
+        <span class="sb-title">Grafana — Production Analytics Dashboard</span>
+        <span class="sb-badge">localhost:3000</span>
+      </div>
+      <div class="screenshot-container">
+        <img
+          src="images/WBGRAP.png"
+          alt="Grafana Production Analytics Dashboard"
+          class="project-screenshot"
+          loading="lazy"
+        />
+        <div class="screenshot-placeholder" id="grafana-placeholder">
+          <div class="ph-icon">📊</div>
+          <p class="ph-title">Grafana Dashboard Screenshot</p>
+        </div>
+      </div>
+    </div>
+    <p class="screen-caption">Grafana dashboard — multi-panel analytics fed from InfluxDB with auto-refresh</p>
+  </div>
+
+</div>
 
       <!-- Tracked metrics -->
       <div class="metrics-grid reveal">
@@ -954,6 +1080,7 @@
         <nav class="footer-nav">
           <a href="#overview">Overview</a>
           <a href="#architecture">Architecture</a>
+          <a href="#system-flow">System Flow</a>
           <a href="#hmi">HMI</a>
           <a href="#cmms">CMMS</a>
           <a href="#data">Data</a>

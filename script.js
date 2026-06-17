@@ -466,3 +466,26 @@
   // Start after a delay
   setTimeout(tick, 1200);
 })();
+/* ── SCREENSHOT LOADER ──────────────────── */
+(function () {
+  document.querySelectorAll('.project-screenshot').forEach(img => {
+    const placeholder = img.nextElementSibling;
+    if (!placeholder) return;
+
+    // If already cached and loaded
+    if (img.complete && img.naturalWidth > 0) {
+      placeholder.style.display = 'none';
+      return;
+    }
+
+    img.addEventListener('load', () => {
+      placeholder.style.display = 'none';
+    });
+
+    // If image fails to load, keep placeholder visible with a note
+    img.addEventListener('error', () => {
+      const sub = placeholder.querySelector('.ph-sub');
+      if (sub) sub.innerHTML = `File not found — add it at: <code>${img.getAttribute('src')}</code>`;
+    });
+  });
+})();
